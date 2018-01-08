@@ -1,4 +1,4 @@
-# Serverless Security Group Sentry
+# Serverless IAM Old Key Sentry
 If one of your staff members (inadvertently | mischievously) modifies your VPC security group to allow SSH access to the world,
 you want the change to be automatically reverted and then receive a notification that the change to the security group was automatically reverted.
 
@@ -29,101 +29,39 @@ The below script is written in `Python 2.7`. Remember to choose the same in AWS 
 
 _Change the global variables at the top of the script to suit your needs._
 ```py
-import os, json, boto3
+# List IAM users having 90 days older Access keys
+
+import datetime, boto3, os
 
 # Set the global variables
 globalVars  = {}
 globalVars['Owner']                 = "Miztiik"
 globalVars['Environment']           = "Test"
 globalVars['REGION_NAME']           = "ap-south-1"
-globalVars['tagName']               = "Valaxy-Serverless-Security-Group-Sentry"
-
-globalVars['security_group_id']     = os.environ['security_group_id']
-
-# ===============================================================================
-def lambda_handler(event, context):
-    print(event)
-
-    print globalVars['security_group_id']
-    # Ensure that we have an event name to evaluate.
-    if 'detail' not in event or ('detail' in event and 'eventName' not in event['detail']):
-        return {"Result": "Failure", "Message": "Lambda not triggered by an event"}
-
-    # Remove the rule only if the event was to authorize the ingress rule for the given
-    # security group id is one provided in the Environment Variables.
-    if (event['detail']['eventName'] == 'AuthorizeSecurityGroupIngress' and
-            event['detail']['requestParameters']['groupId'] == globalVars['security_group_id']):
-        result = revoke_security_group_ingress(event['detail'])
-
-        message = "AUTO-MITIGATED: Ingress rule removed from security group: {} that was added by {}: {}".format(
-            result['group_id'],
-            result['user_name'],
-            json.dumps(result['ip_permissions'])
-        )
-
-        # boto3.client('sns').publish( TargetArn = os.environ['sns_topic_arn'], Message = message, Subject = "Auto-mitigation successful" )
-
-# ===============================================================================
-def revoke_security_group_ingress(event_detail):
-    request_parameters = event_detail['requestParameters']
-
-    # Build the normalized IP permission JSON struture.
-    ip_permissions = normalize_paramter_names(request_parameters['ipPermissions']['items'])
-
-    response = boto3.client('ec2').revoke_security_group_ingress(
-        GroupId=request_parameters['groupId'],
-        IpPermissions=ip_permissions
-    )
-
-    # Build the result
-    result = {}
-    result['group_id'] = request_parameters['groupId']
-    result['user_name'] = event_detail['userIdentity']['arn']
-    result['ip_permissions'] = ip_permissions
-
-    return result
+globalVars['tagName']               = "Valaxy-Serverless-IAM-Key-Sentry"
 
 
-# ===============================================================================
-def normalize_paramter_names(ip_items):
-    # Start building the permissions items list.
-    new_ip_items = []
+def get_usr_old_keys( keyAge ):
+    client = boto3.client('iam')
+    usersList=client.list_users()
+   
+    timeLimit=datetime.datetime.now() - datetime.timedelta( days = int(keyAge) )
+    usrsWithOldKeys = {'Users':[], 'KeyAgeCutOff':keyAge}
 
-    # First, build the basic parameter list.
-    for ip_item in ip_items:
+    for k in usersList['Users']:
+        accessKeys=client.list_access_keys(UserName=k['UserName'])
+    
+        for key in accessKeys['AccessKeyMetadata']:
+            if key['CreateDate'].date() <= timeLimit.date():
+                usrsWithOldKeys['Users'].append({ 'UserName': k['UserName'], 'KeyAgeInDays': (datetime.date.today() - key['CreateDate'].date()).days })
 
-        new_ip_item = {
-            "IpProtocol": ip_item['ipProtocol'],
-            "FromPort": ip_item['fromPort'],
-            "ToPort": ip_item['toPort']
-        }
+    return usrsWithOldKeys
 
-        # CidrIp or CidrIpv6 (IPv4 or IPv6)?
-        if 'ipv6Ranges' in ip_item and ip_item['ipv6Ranges']:
-            # This is an IPv6 permission range, so change the key names.
-            ipv_range_list_name = 'ipv6Ranges'
-            ipv_address_value = 'cidrIpv6'
-            ipv_range_list_name_capitalized = 'Ipv6Ranges'
-            ipv_address_value_capitalized = 'CidrIpv6'
-        else:
-            ipv_range_list_name = 'ipRanges'
-            ipv_address_value = 'cidrIp'
-            ipv_range_list_name_capitalized = 'IpRanges'
-            ipv_address_value_capitalized = 'CidrIp'
 
-        ip_ranges = []
-
-        # Next, build the IP permission list.
-        for item in ip_item[ipv_range_list_name]['items']:
-            ip_ranges.append(
-                {ipv_address_value_capitalized: item[ipv_address_value]}
-            )
-
-        new_ip_item[ipv_range_list_name_capitalized] = ip_ranges
-
-        new_ip_items.append(new_ip_item)
-
-    return new_ip_items
+def lambda_handler(event, context):   
+    # Set the default cutoff if env variable is not set
+    globalVars['key_age'] = os.getenv('key_age_cutoff_in_days',90)
+    return get_usr_old_keys( globalVars['key_age'] )
 ```
 After pasting the code, Scroll down to create a environment variable Key as `security_group_id` and Value as the `Security Group ID` that we need to monitor. `Save` the lambda function
 
