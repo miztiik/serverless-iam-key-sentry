@@ -3,7 +3,7 @@ Changing access keys (which consist of an access key ID and a secret access key)
 
 Identifying applications and services with old keys become imperative in those case. We are going to use `Lambda Functions` to periodically check our account for old keys and notify our Security Operations Team using `SNS`
 
-![Fig : Valaxy-Serverless-Security-Group-Sentry](https://raw.githubusercontent.com/miztiik/serverless-sg-sentry/master/images/AWS-IAM-Old-Keys.png)
+![Fig : Valaxy-Serverless-Security-Group-Sentry](https://raw.githubusercontent.com/miztiik/serverless-iam-key-sentry/master/images/AWS-IAM-Old-Keys.png)
 You can also follow this article in Youtube
 
 ## Pre-Requisities
