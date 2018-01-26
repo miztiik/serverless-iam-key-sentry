@@ -28,7 +28,7 @@ _Change the global variables at the top of the script to suit your needs._
 ```py
 # List IAM users having 90 days older Access keys
 
-import datetime, boto3, os
+import datetime, boto3, os, json
 from botocore.exceptions import ClientError
 
 # Set the global variables
@@ -65,7 +65,7 @@ def get_usr_old_keys( keyAge ):
 
     try:
         snsClient.get_topic_attributes( TopicArn= globalVars['SecOpsArn'] )
-        snsClient.publish(TopicArn = globalVars['SecOpsArn'], Message = str(usrsWithOldKeys) )
+        snsClient.publish(TopicArn = globalVars['SecOpsArn'], Message = json.dumps(usrsWithOldKeys, indent=4) )
         usrsWithOldKeys['SecOpsEmailed']="Yes"
     except ClientError as e:
         usrsWithOldKeys['SecOpsEmailed']="No - SecOpsArn is Incorrect"
