@@ -18,11 +18,11 @@ We will need the following pre-requisites to successfully complete this activity
 _The image above shows the execution order, that should not be confused with the numbering of steps given here_
 
 
-## Step 1 - Configure Lambda Function- `SG-Sentry-Bot`
+## Step 1 - Configure Lambda Function- `Serverless-IAM-Sentry`
 The below script is written in `Python 2.7`. Remember to choose the same in AWS Lambda Functions.
 ### Customisations
 - `globalVars['key_age']` - Set the `key_age` to any value you desire, by default it is set to 90 days
-- `globalVars['SecOpsArn']` - Update the ARN of your SNS Topic
+- `globalVars['SecOpsTopicArn']` - Update the ARN of your SNS Topic
 
 _Change the global variables at the top of the script to suit your needs._
 ```py
@@ -38,7 +38,7 @@ globalVars['Environment']           = "Test"
 globalVars['REGION_NAME']           = "ap-south-1"
 globalVars['tagName']               = "Valaxy-Serverless-IAM-Key-Sentry"
 globalVars['key_age']               = "90"
-globalVars['SecOpsArn']             = ""
+globalVars['SecOpsTopicArn']        = ""
 
 def get_usr_old_keys( keyAge ):
     client = boto3.client('iam',region_name = globalVars['REGION_NAME'])
@@ -64,11 +64,11 @@ def get_usr_old_keys( keyAge ):
             usrsWithOldKeys['OldKeyCount'] = 'Found {0} Keys that are older than {1} days'.format(len(usrsWithOldKeys['Users']), keyAge)
 
     try:
-        snsClient.get_topic_attributes( TopicArn= globalVars['SecOpsArn'] )
-        snsClient.publish(TopicArn = globalVars['SecOpsArn'], Message = json.dumps(usrsWithOldKeys, indent=4) )
+        snsClient.get_topic_attributes( TopicArn= globalVars['SecOpsTopicArn'] )
+        snsClient.publish(TopicArn = globalVars['SecOpsTopicArn'], Message = json.dumps(usrsWithOldKeys, indent=4) )
         usrsWithOldKeys['SecOpsEmailed']="Yes"
     except ClientError as e:
-        usrsWithOldKeys['SecOpsEmailed']="No - SecOpsArn is Incorrect"
+        usrsWithOldKeys['SecOpsEmailed']="No - SecOpsTopicArn is Incorrect"
 
     return usrsWithOldKeys
 
@@ -76,14 +76,14 @@ def get_usr_old_keys( keyAge ):
 def lambda_handler(event, context):   
     # Set the default cutoff if env variable is not set
     globalVars['key_age'] = int(os.getenv('key_age',90))
-    globalVars['SecOpsArn']=str(os.getenv('SecOpsTopicArn'))
+    globalVars['SecOpsTopicArn']=str(os.getenv('SecOpsTopicArn'))
 
     return get_usr_old_keys( globalVars['key_age'] )
 
 ```
 After pasting the code, Scroll down to create a environment variable Key,
 1. Key as `key_age_cutoff_in_days` and Value as `90`
-1. Key `SecOpsArn` and Value as `YOUR-SNS-TOPIC-ARN`
+1. Key `SecOpsTopicArn` and Value as `YOUR-SNS-TOPIC-ARN`
 
 `Save` the lambda function
 
