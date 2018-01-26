@@ -10,7 +10,9 @@ You can also follow this article in Youtube
 We will need the following pre-requisites to successfully complete this activity,
 - Few `IAM Users` with one or two _Access Key_ created in the AWS Region where the solution is deployed
 - Security Operations SNS Topic ARN - [If you need assistance, follow this article](https://www.youtube.com/watch?v=7Ic1SQbjpOs)
-- IAM Role - _i.e_ `Lambda Service Role` - _with_ `EC2FullAccess` _permissions_
+- IAM Role - _i.e_ `Lambda Service Role` - _with_ 
+  - `IAMReadOnlyAccess` _permissions_
+  - `AmazonSNSFullAccess` _permissions_
   - _You may use an `Inline` policy with more restrictive permissions_
 
 _The image above shows the execution order, that should not be confused with the numbering of steps given here_
