@@ -10,7 +10,7 @@ globalVars['Environment']           = "Test"
 globalVars['REGION_NAME']           = "ap-south-1"
 globalVars['tagName']               = "Valaxy-Serverless-IAM-Key-Sentry"
 globalVars['key_age']               = "90"
-globalVars['SecOpsArn']             = ""
+globalVars['SecOpsTopicArn']        = ""
 
 def get_usr_old_keys( keyAge ):
     client = boto3.client('iam',region_name = globalVars['REGION_NAME'])
@@ -36,11 +36,11 @@ def get_usr_old_keys( keyAge ):
             usrsWithOldKeys['OldKeyCount'] = 'Found {0} Keys that are older than {1} days'.format(len(usrsWithOldKeys['Users']), keyAge)
 
     try:
-        snsClient.get_topic_attributes( TopicArn= globalVars['SecOpsArn'] )
-        snsClient.publish(TopicArn = globalVars['SecOpsArn'], Message = json.dumps(usrsWithOldKeys, indent=4) )
+        snsClient.get_topic_attributes( TopicArn= globalVars['SecOpsTopicArn'] )
+        snsClient.publish(TopicArn = globalVars['SecOpsTopicArn'], Message = json.dumps(usrsWithOldKeys, indent=4) )
         usrsWithOldKeys['SecOpsEmailed']="Yes"
     except ClientError as e:
-        usrsWithOldKeys['SecOpsEmailed']="No - SecOpsArn is Incorrect"
+        usrsWithOldKeys['SecOpsEmailed']="No - SecOpsTopicArn is Incorrect"
 
     return usrsWithOldKeys
 
@@ -48,6 +48,6 @@ def get_usr_old_keys( keyAge ):
 def lambda_handler(event, context):   
     # Set the default cutoff if env variable is not set
     globalVars['key_age'] = int(os.getenv('key_age',90))
-    globalVars['SecOpsArn']=str(os.getenv('SecOpsTopicArn'))
+    globalVars['SecOpsTopicArn']=str(os.getenv('SecOpsTopicArn'))
 
     return get_usr_old_keys( globalVars['key_age'] )
