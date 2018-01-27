@@ -101,13 +101,7 @@ cron(0 12 * * ? *)
 _If you want to learn more about the above Scheduled expressions,_ Ref: [CloudWatch - Schedule Expressions for Rules](http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions)
 
 ## Step 3 - Testing the solution
-Navigate to the `EC2 console` and choose `Security Groups` and Choose the security group that we are monitoring.
-Add a new `Inbound` rule, for example `SSH` on port `22` from `0.0.0.0/0`.
-
-Adding this rule creates an **EC2** `AuthorizeSecurityGroupIngress` service event, which triggers the Lambda function.
-
-After a few moments, choose the refresh button ( The "**refresh**" icon ) to see that the new _ingress_ rule that you just created has been removed by the solution.
-
+If you already have `IAM Users` with Access Keys, then set the `key_age` to appropirate values. If not, Create multiple IAM Users and create `Access Key` for each of them and set the `key_age` to `1`. 
 
 ### Rotate access keys
 After you have identified old keys, You should follow these steps to rotate the keys
